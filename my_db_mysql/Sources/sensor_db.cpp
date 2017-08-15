@@ -38,7 +38,24 @@
 			}												\
 		} while (0)
 
-					
+
+#define CHECK_POINTER(p, msg) 								\
+		do {												\
+			if(p == NULL) {									\
+				DEBUG_PRINT( "%s\n", msg );					\
+				return 1;									\
+			}												\
+		} while (0)
+
+#define MYSQL_QUERY_EXE(con, q, err_msg)						\
+		do {													\
+				if(mysql_query(con, q)) {						\
+					printf("%s\n", err_msg);					\
+					return 1;									\
+				}												\
+				if(q != NULL) ;							\
+		} while (0)
+
 void tstamp_to_tstring(sensor_ts_t ts, char *strtime) {
 	strftime(strtime, 20, "%F %T",localtime(&ts));  	
 }
@@ -49,6 +66,68 @@ void tstamp_to_tstring(sensor_ts_t ts, char *strtime) {
  * If the table existed, clear up the existing data if clear_up_flag is set to 1
  * return the connection for success, NULL if an error occurs
  */
+
+mysql_conn_pt connect_mysql_db(const char *host, const char *user, const char *passwd, const char *dbName)
+{
+	// init a mysql object
+	mysql_conn_pt con = mysql_init(NULL);
+	if(con == NULL) {
+		printf( "Error %s: could not initialze mysql pointer!\n", __func__);
+		return NULL;
+	}
+
+	// establish a connection to the host server
+	if(mysql_real_connect(con, host, user, passwd, dbName, 0, NULL, 0) == NULL) {
+		printf( "Error %s: could not make a connection to the host server!\n", __func__);
+		return NULL;
+	}
+
+	return con;
+}
+
+int create_mysql_db(mysql_conn_pt con, const char *host, const char *user, const char *passwd, const char *dbName)
+{
+	// initialises a MYSQL object
+	con = mysql_init(NULL);
+	CHECK_POINTER(con, "Error create_mysql_db(): could not initialze mysql pointer!\n");
+
+	// establish a connection to the host server
+	CHECK_POINTER(mysql_real_connect(con, host, user, passwd, NULL, 0, NULL, 0), "Error create_mysql_db(): could not make a connection to the host server!\n");
+
+	char *query;
+	asprintf(&query, "CREATE DATABASE %s", dbName);
+	MYSQL_QUERY_EXE(con, query, "Error create_mysql_db(): could not create database or database name already exists in the host server!");
+
+	return 0;
+}
+
+int create_mysql_table(mysql_conn_pt con, int dropTableIfExists, const char *tableName, char *itemName)
+{
+	CHECK_POINTER(con, "Error creat_mysql_table(): invalid connection pointer!\n");
+
+	char *query;
+	MYSQL_RES *result;
+
+	if (dropTableIfExists) {
+		asprintf(&query, "DROP TABLE IF EXISTS %s", tableName);
+		MYSQL_QUERY_EXE(con, query, "Error create_mysql_table(): could not drop the existed table in the host server!");
+	}
+	else {
+		// Check if table is already existing
+		asprintf(&query, "SHOW TABLES LIKE '%s'", tableName);
+		MYSQL_QUERY_EXE(con, query, "Error create_mysql_table(): invalid showing table name!");
+		result = mysql_store_result(con);
+		unsigned int num_rows = mysql_num_rows(result);
+		mysql_free_result(result);
+		if(num_rows > 0) return 1;
+	}
+
+	asprintf(&query, "CREATE TABLE %s (id INT PRIMARY KEY AUTO_INCREMENT, %s_id INT, %s_value DECIMAL(4,2), timestamp TIMESTAMP)", tableName, itemName, itemName);
+	MYSQL_QUERY_EXE(con, query, "Error create_mysql_table(): could not create the table!");
+
+	free(query);
+	return 0;
+}
 
 MYSQL *init_connection(int clear_up_flag)
 {

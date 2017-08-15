@@ -1,15 +1,16 @@
 #ifndef _SENSOR_DB_H_
 #define _SENSOR_DB_H_
 
+#include <mysql.h>
+#include "config.h"
+
 #define DB_SERVER_NAME "localhost"
 #define USER_NAME "root"
 #define PASSWORD "7777"
 #define DB_NAME "testdb"
 #define TABLE_NAME "PhamHoangChi"
 
-#include <mysql.h>
-#include "config.h"
-
+typedef MYSQL *mysql_conn_pt;
 
 /*
  * Make a connection to MySQL database
@@ -17,6 +18,12 @@
  * If the table existed, clear up the existing data if clear_up_flag is set to 1
  * return the connection for success, NULL if an error occurs
  */
+
+mysql_conn_pt connect_mysql_db(const char *host, const char *user, const char *passwd, const char *dbName);
+
+int create_mysql_db(mysql_conn_pt con, const char *host, const char *user, const char *passwd, const char *dbName);
+
+int create_mysql_table(mysql_conn_pt con, int dropTableIfExists, const char *tableName, char *itemName = "Sensor");
 
 MYSQL *init_connection(int clear_up_flag);
 
