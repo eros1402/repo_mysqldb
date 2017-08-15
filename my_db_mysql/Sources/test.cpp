@@ -15,11 +15,37 @@
 
 #define DATA_FILE 	"sensor_data"
 
-int main(void)
+void test_create_mysql_db() {
+	
+	mysql_conn_pt con = NULL;
+	if(create_mysql_db(con, DB_SERVER_NAME, USER_NAME, PASSWORD, "MY_DB")) {
+		printf("DB not created!\n");
+	}
+	else printf("DB created\n");
+
+	disconnect(con);
+}
+
+void test_create_mysql_table() {
+	mysql_conn_pt con = connect_mysql_db(DB_SERVER_NAME, USER_NAME, PASSWORD, "MY_DB");
+	if(con == NULL) {
+		printf("Error in connection!\n");
+	}
+	else printf("Connect successfully!\n");
+
+	if(create_mysql_table(con, 0, "my_table"))
+		printf("Could not create table\n");
+	else
+		printf("Create table successfully\n");
+
+	disconnect(con);
+}
+
+void test_1()
 {
 	int clear_up_flag = 1;
 	sensor_ts_t ts1, ts2, ts3, ts4;
-	
+
 	//=============================================//
 	MYSQL *conn = init_connection(clear_up_flag);
 	
@@ -77,34 +103,44 @@ int main(void)
   	printf("Result size: %d\n", size); 
   	free_sensor_data(result);
   	  	  	
-  	//=============================================//
-	printf("----- Test function: insert_sensor_from_file -----\n");
-  	FILE *fp;
-  	fp = fopen( DATA_FILE, "r" );  	
-  	int status = insert_sensor_from_file(conn, fp);  	
-  	if(status == -1) {
-		fprintf(stderr, "Insert data failed!\n");
-	}	
-	result = find_sensor_all(conn);
-	
-	print_result(result);
-  	size = get_result_size(result);  	
-  	printf("Result size: %d\n", size);  	  	
-  	free_sensor_data(result);
-  	
-  	//=============================================//
-	printf("----- Test function: find_sensor_later_timestamp -----\n");
-  	result = find_sensor_later_timestamp(conn, ts2);
-  	if(result == NULL) {
-		fprintf(stderr, "Null result!\n");
-	}	
-	print_result(result);
-  	size = get_result_size(result);  	
-  	printf("Result size: %d\n", size);  
-  	free_sensor_data(result);
+//  	//=============================================//
+//	printf("----- Test function: insert_sensor_from_file -----\n");
+//  	FILE *fp;
+//  	fp = fopen( DATA_FILE, "r" );
+//  	int status = insert_sensor_from_file(conn, fp);
+//  	if(status == -1) {
+//		fprintf(stderr, "Insert data failed!\n");
+//	}
+//	result = find_sensor_all(conn);
+//
+//	print_result(result);
+//  	size = get_result_size(result);
+//  	printf("Result size: %d\n", size);
+//  	free_sensor_data(result);
+//
+//  	//=============================================//
+//	printf("----- Test function: find_sensor_later_timestamp -----\n");
+//  	result = find_sensor_later_timestamp(conn, ts2);
+//  	if(result == NULL) {
+//		fprintf(stderr, "Null result!\n");
+//	}
+//	print_result(result);
+//  	size = get_result_size(result);
+//  	printf("Result size: %d\n", size);
+//  	free_sensor_data(result);
   	
   	//=============================================//
 	disconnect(conn);
+}
+
+int main(void)
+{
+	//============
+//	test_create_mysql_db();
+
+	test_create_mysql_table();
+
+
 	return 0;
 }
 
