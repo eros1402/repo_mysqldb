@@ -81,6 +81,22 @@ int insert_mysql_item(mysql_conn_pt con, const char *tableName, item_id_t id, it
  */
 int insert_mysql_item_from_file(mysql_conn_pt con, FILE *data_file, const char *tableName);
 
+/*
+ * Return the number of records contained in the result
+ */
+int get_num_of_rows(mysql_res_pt result);
+
+/*
+ * Write a SELECT query to return all item measurements existed in the table
+ * return mysql_res_pt with all the results, return NULL if error
+ */
+mysql_res_pt get_items_from_table(mysql_conn_pt con, const char *tableName);
+
+/*
+ * Free the records contained in the result
+ */
+void free_mysql_result(mysql_res_pt result);
+
 ////////// OLD IMPLEMENTATION ///////////////////////////
 /*
  * Make a connection to MySQL database

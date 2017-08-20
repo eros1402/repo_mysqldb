@@ -37,9 +37,9 @@
 
 #define CHECK_INVALID_VALUE(value, msg) 					\
 		do {												\
-			if(value != 0) {								\
+			if(value) {								\
 				printf( "%s\n", msg );						\
-				return 1;									\
+				return -1;									\
 			}												\
 		} while (0)
 
@@ -48,7 +48,7 @@
 		do {												\
 			if(p == NULL) {									\
 				printf( "%s\n", msg );						\
-				return 1;									\
+				return -1;									\
 			}												\
 		} while (0)
 
@@ -56,7 +56,7 @@
 		do {													\
 				if(mysql_query(con, q)) {						\
 					printf("%s\n", err_msg);					\
-					return 1;									\
+					return -1;									\
 				}												\
 				if(q != NULL) free(q);							\
 		} while (0)
@@ -101,7 +101,7 @@ void disconnect_mysql_db(mysql_conn_pt con)
 
 /*
  * Reconnect to MySQL database
- * return 0 if database is connected successfully, 1 if there is an error
+ * return 0 if database is connected successfully, -1 if there is an error
  */
 int reconnect_mysql_db(mysql_conn_pt con) {
 	CHECK_POINTER(con, "Error reconnect_mysql_db(): invalid connection pointer!\n");
@@ -110,7 +110,7 @@ int reconnect_mysql_db(mysql_conn_pt con) {
 	// mysql_options(conn, MYSQL_OPT_RECONNECT, &recon);
 	if (mysql_real_connect(con, con->host, con->user, con->passwd, con->db, 0, NULL, 0) == NULL) {
 		fprintf(stderr, "reconnect_mysql_db(): %s\n", mysql_error(con));
-		return 1;
+		return -1;
 	}
 
 	return 0;
@@ -118,11 +118,11 @@ int reconnect_mysql_db(mysql_conn_pt con) {
 
 /*
  * Checks whether the connection to the server is working
- * return zero for success, and 1 if an error occurs
+ * return zero for success, and -1 if an error occurs
  */
 int check_mysql_connection(mysql_conn_pt con) {
 	CHECK_POINTER(con, "Error check_mysql_connection(): invalid connection pointer!\n");
-	if(mysql_ping(con)) return 1;
+	if(mysql_ping(con)) return -1;
 
 	return 0;
 }
@@ -130,7 +130,7 @@ int check_mysql_connection(mysql_conn_pt con) {
 /*
  * Make a connection to MySQL database with host name, user name, password
  * Create database with dbName
- * return 0 if database is created successfully, 1 if there is an error
+ * return 0 if database is created successfully, -1 if there is an error
  */
 int create_mysql_db(mysql_conn_pt con, const char *host, const char *user, const char *passwd, const char *dbName)
 {
@@ -152,7 +152,7 @@ int create_mysql_db(mysql_conn_pt con, const char *host, const char *user, const
 
 /*
  * Checks whether the database name is existing in the host server
- * return zero if database is not existing, 1 if it is existing or error
+ * return zero if database is not existing, 1 if it is existing and -1 if error
  */
 int check_mysql_db(mysql_conn_pt con, const char *dbName)
 {
@@ -176,7 +176,7 @@ int check_mysql_db(mysql_conn_pt con, const char *dbName)
  * Table should have an 'id' column as index which is primary key and auto increment
  * one column of 'itemName' id, one column of  'itemName' value and one column of 'itemName' timestamp
  * If the table existed, clear up the existing data if dropTableIfExists flag is set to 1
- * return 0 if table is created successfully, 1 if there is an error
+ * return 0 if table is created successfully, -1 if there is an error
  */
 int create_mysql_table(mysql_conn_pt con, int dropTableIfExists, const char *tableName, const char *itemName)
 {
@@ -207,7 +207,7 @@ int create_mysql_table(mysql_conn_pt con, int dropTableIfExists, const char *tab
 
 /*
  * Checks whether the table name is existing in the database
- * return zero if table is already available, and 1 if unavailable or error
+ * return zero if table is not existing, and 1 if existing or -1 if error
  */
 int check_mysql_table(mysql_conn_pt con, const char *tableName)
 {
@@ -222,14 +222,14 @@ int check_mysql_table(mysql_conn_pt con, const char *tableName)
 	result = mysql_store_result(con);
 	unsigned int num_rows = mysql_num_rows(result);
 	mysql_free_result(result);
-	if(num_rows <= 0) return 1;
+	if(num_rows > 0) return 1;
 
 	return 0;
 }
 
 /*
  * Write an INSERT query to insert a single item measurement
- * return zero for success, and 1 if an error occurs
+ * return zero for success, and -1 if an error occurs
  */
 int insert_mysql_item(mysql_conn_pt con, const char *tableName, item_id_t id, item_value_t value, item_timestamp_t ts)
 {
@@ -237,6 +237,9 @@ int insert_mysql_item(mysql_conn_pt con, const char *tableName, item_id_t id, it
 	char strtime[20];
 
 	CHECK_POINTER(con, "Error insert_mysql_item(): invalid connection pointer!\n");
+
+	CHECK_INVALID_VALUE(!check_mysql_table(con, tableName), "Error insert_mysql_item(): table name is not existing!\n");
+
 	tstamp_to_tstring(ts, (char *)strtime);
 	asprintf(&query, "INSERT INTO %s VALUES (null, %d, %g, '%s')", tableName, (int)id,(double)value, strtime);
 	MYSQL_QUERY_EXE(con, query, "Error insert_mysql_item(): could not insert the item into the table!");
@@ -260,7 +263,7 @@ int insert_mysql_item_from_file(mysql_conn_pt con, FILE *data_file, const char *
 
 	CHECK_POINTER(data_file, "Error insert_mysql_item_from_file(): invalid data file pointer!\n");
 
-	CHECK_INVALID_VALUE(check_mysql_table(con, tableName), "Error insert_mysql_item_from_file(): invalid table name!\n");
+	CHECK_INVALID_VALUE(!check_mysql_table(con, tableName), "Error insert_mysql_item_from_file(): table name is not existing!\n");
 
 	// obtain file size:
 	fseek (data_file , 0 , SEEK_END);
@@ -295,6 +298,52 @@ int insert_mysql_item_from_file(mysql_conn_pt con, FILE *data_file, const char *
 	}
 
 	return 0;
+}
+
+/*
+ * Return the number of records contained in the result
+ * Return -1 if error
+ */
+int get_num_of_rows(mysql_res_pt result)
+{
+	CHECK_POINTER(result, "Error get_num_of_rows(): invalid result pointer!\n");
+	return mysql_num_rows(result);
+}
+
+/*
+ * Write a SELECT query to return all item measurements existed in the table
+ * return mysql_res_pt with all the results, return NULL if error
+ */
+mysql_res_pt get_items_from_table(mysql_conn_pt con, const char *tableName)
+{
+	if(con == NULL) {
+		printf( "Error %s: could not initialze mysql pointer!\n", __func__);
+		return NULL;
+	}
+
+	char *query;
+	asprintf(&query, "SELECT * FROM %s", tableName);
+	if (mysql_query(con, query)) {
+		fprintf(stderr, "%s\n", mysql_error(con));
+		return NULL;
+	}
+
+	mysql_res_pt result = mysql_store_result(con);
+	if(result == NULL) {
+		fprintf(stderr, "%s\n", mysql_error(con));
+		return NULL;
+	}
+
+	free(query);
+	return result;
+}
+
+/*
+ * Free the records contained in the result
+ */
+void free_mysql_result(mysql_res_pt result)
+{
+	mysql_free_result(result);
 }
 
 ////////// OLD IMPLEMENTATION ///////////////////////////
@@ -556,14 +605,14 @@ mysql_res_pt find_sensor_later_timestamp(MYSQL *conn, sensor_ts_t ts_t) {
 /*
  * Return the number of records contained in the result
  */
-int get_result_size(MYSQL_RES *result) {	
+int get_result_size(mysql_res_pt result) {
 	return mysql_num_rows(result);
 }
 
 /*
  * Print all the records contained in the result
  */
-void print_result(MYSQL_RES *result) {
+void print_result(mysql_res_pt result) {
 	int num_fields = mysql_num_fields(result);
 	MYSQL_ROW row;
 	int i;
@@ -580,7 +629,7 @@ void print_result(MYSQL_RES *result) {
 /*
  * Free the records contained in the result
  */
-void free_sensor_data(MYSQL_RES *result) {
+void free_sensor_data(mysql_res_pt result) {
 	mysql_free_result(result);
 }
 

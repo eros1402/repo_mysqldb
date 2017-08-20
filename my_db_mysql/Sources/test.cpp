@@ -48,15 +48,18 @@ void test_create_mysql_table() {
 		printf("Host %s - User %s - pw %s -db %s\n", con->host, con->user, con->passwd, con->db);
 	}
 
+	if(check_mysql_table(con, "my_table2")) printf("table2 existing\n");
+	else printf("table2 not existing\n");
+
 	if(create_mysql_table(con, 0, "my_table2"))
 		printf("Could not create table 'my_table2'\n");
 	else
-		printf("Create table 'my_table2'successfully\n");
+		printf("Create table 'my_table2' successfully\n");
 
 	if(create_mysql_table(con, 1, "my_table2", "ss"))
 		printf("Could not create table 'my_table2'\n");
 	else
-		printf("Create table 'my_table2'successfully\n");
+		printf("Create table 'my_table2' successfully\n");
 	disconnect(con);
 }
 
@@ -70,7 +73,7 @@ void test_insert_mysql_item() {
 		printf("Connect successfully!\n");
 		printf("Host %s - User %s - pw %s -db %s\n", con->host, con->user, con->passwd, con->db);
 	}
-	printf("ts1 %ld sec\n", (long)ts1);
+
 	//=============================================//
 	ts1 = (item_timestamp_t)time(NULL);
 	insert_mysql_item(con, "my_table", 11, 20.02, ts1);
@@ -182,11 +185,11 @@ void test_insert_mysql_item() {
 int main(void)
 {
 	//============
-	test_create_mysql_db();
-
+//	test_create_mysql_db();
+//
 //	test_create_mysql_table();
 
-//	test_insert_mysql_item();
+	test_insert_mysql_item();
 
 	return 0;
 }
