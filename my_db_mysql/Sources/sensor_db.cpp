@@ -141,23 +141,34 @@ int create_mysql_db(mysql_conn_pt con, const char *host, const char *user, const
 	// establish a connection to the host server
 	CHECK_POINTER(mysql_real_connect(con, host, user, passwd, NULL, 0, NULL, 0), "Error create_mysql_db(): could not make a connection to the host server!\n");
 
+	CHECK_INVALID_VALUE(check_mysql_db(con, dbName), "Warning create_mysql_db(): database name is already existing!");
+
 	char *query;
 	asprintf(&query, "CREATE DATABASE %s", dbName);
-	MYSQL_QUERY_EXE(con, query, "Error create_mysql_db(): could not create database or database name already exists in the host server!");
+	MYSQL_QUERY_EXE(con, query, "Error create_mysql_db(): could not create database!");
 
 	return 0;
 }
 
 /*
  * Checks whether the database name is existing in the host server
- * return zero if database is already available, and 1 if unavailable or error
+ * return zero if database is not existing, 1 if it is existing or error
  */
 int check_mysql_db(mysql_conn_pt con, const char *dbName)
 {
 	CHECK_POINTER(con, "Error check_mysql_db(): invalid connection pointer!\n");
 
+	char *query;
+	mysql_res_pt result;
 
-	return 0;
+	// Check if table is already existing
+	asprintf(&query, "SHOW DATABASES LIKE '%s'", dbName);
+	MYSQL_QUERY_EXE(con, query, "Error check_mysql_db(): invalid showing database name!");
+	result = mysql_store_result(con);
+	unsigned int num_rows = mysql_num_rows(result);
+	mysql_free_result(result);
+	if(num_rows <= 0) return 0;
+	return 1;
 }
 
 /*
@@ -203,7 +214,7 @@ int check_mysql_table(mysql_conn_pt con, const char *tableName)
 	CHECK_POINTER(con, "Error check_mysql_table(): invalid connection pointer!\n");
 
 	char *query;
-	MYSQL_RES *result;
+	mysql_res_pt result;
 
 	// Check if table is already existing
 	asprintf(&query, "SHOW TABLES LIKE '%s'", tableName);

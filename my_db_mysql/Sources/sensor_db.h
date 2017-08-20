@@ -22,7 +22,7 @@ typedef struct{
  * Make a connection to MySQL database with host name, user name, password and database name
  * return the connection for success, NULL if an error occurs
  */
-mysql_conn_pt connect_mysql_db(const char *host, const char *user, const char *passwd, const char *dbName);
+mysql_conn_pt connect_mysql_db(const char *host, const char *user, const char *passwd, const char *dbName = NULL);
 
 /*
  * Disconnect MySQL database
@@ -47,6 +47,12 @@ int check_mysql_connection(mysql_conn_pt con);
  * return 0 if database is created successfully, 1 if there is an error
  */
 int create_mysql_db(mysql_conn_pt con, const char *host, const char *user, const char *passwd, const char *dbName);
+
+/*
+ * Checks whether the database name is existing in the host server
+ * return zero if database is already available, and 1 if unavailable or error
+ */
+int check_mysql_db(mysql_conn_pt con, const char *dbName);
 
 /*
  * Create a table named 'tableName' if the table does not exist

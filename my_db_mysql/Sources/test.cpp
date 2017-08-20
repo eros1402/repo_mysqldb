@@ -21,11 +21,19 @@
 
 void test_create_mysql_db() {
 	
-	mysql_conn_pt con = NULL;
-	if(create_mysql_db(con, DB_SERVER_NAME, USER_NAME, PASSWORD, "MY_DB")) {
-		printf("DB not created!\n");
+	mysql_conn_pt con = connect_mysql_db(DB_SERVER_NAME, USER_NAME, PASSWORD);
+	if(con == NULL) {
+		printf("Error in connection!\n");
 	}
-	else printf("DB created\n");
+	else{
+		printf("Connect successfully!\n");
+		printf("Host %s - User %s - pw %s -db %s\n", con->host, con->user, con->passwd, con->db);
+	}
+
+	if(create_mysql_db(con, DB_SERVER_NAME, USER_NAME, PASSWORD, "MY_DB")) {
+		printf("DB is not created!\n");
+	}
+	else printf("DB is created\n");
 
 	disconnect(con);
 }
@@ -174,11 +182,11 @@ void test_insert_mysql_item() {
 int main(void)
 {
 	//============
-//	test_create_mysql_db();
+	test_create_mysql_db();
 
 //	test_create_mysql_table();
 
-	test_insert_mysql_item();
+//	test_insert_mysql_item();
 
 	return 0;
 }
